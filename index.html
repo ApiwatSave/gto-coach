@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GTO Coach MVP</title>
+<style>
+  :root{
+    --bg:#121212; --panel:#1c1c1e; --panel2:#262628; --line:#38383b;
+    --txt:#f2f2f3; --mut:#9a9aa0; --acc:#f5d547;
+    --aggr:#e8514c; --pass:#56b86a; --fold:#3f78b5; --allin:#7a2420;
+    --s:#5a5a5e; --h:#a8281f; --d:#2540b8; --c:#3c9a3f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 -apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;padding:12px 12px 90px;max-width:760px;margin-inline:auto}
+  h1{font-size:18px;margin:6px 0 2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .badge{font-size:11px;background:#5a4a00;color:var(--acc);border:1px solid #8a7300;padding:2px 8px;border-radius:99px;font-weight:600}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+  details,.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+  summary{cursor:pointer;font-weight:600}
+  label{display:block;font-size:12px;color:var(--mut);margin:8px 0 3px}
+  input,select{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit}
+  .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-weight:600;cursor:pointer}
+  button.primary{background:var(--acc);color:#222;border-color:var(--acc)}
+  button:disabled{opacity:.45}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .btns button{flex:1;min-width:120px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:7px 11px;border-radius:99px;font-size:13px;font-weight:600}
+  .chip.on{background:var(--acc);color:#222;border-color:var(--acc)}
+  .sec{font-weight:700;margin:2px 0 4px}
+  .hint{font-size:12px;color:var(--mut)}
+
+  /* ไพ่ */
+  .cards{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pc{width:38px;height:52px;border-radius:6px;color:#fff;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;font-size:19px;padding:0;border:2px solid transparent}
+  .pc small{font-size:14px;margin-top:3px;opacity:.9}
+  .pc.s{background:var(--s)}.pc.h{background:var(--h)}.pc.d{background:var(--d)}.pc.c{background:var(--c)}
+  .pc.empty{background:var(--panel2);border:2px dashed #55555a;color:#777;font-size:20px}
+  .pc.lock{opacity:.4}
+
+  /* ที่นั่ง */
+  .seats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+  .seat{background:var(--panel2);border:2px solid transparent;border-radius:10px;padding:6px 4px;text-align:center;font-size:12px;line-height:1.3}
+  .seat b{display:block;font-size:13px}
+  .seat.to{border-color:var(--pass)}
+  .seat.hero b::after{content:" ★";color:var(--acc)}
+  .seat.fold{opacity:.35}
+  .seat .bt{color:var(--acc);font-weight:700}
+  .potline{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .potline .pot{font-size:20px;font-weight:800}
+
+  /* ปุ่ม action */
+  .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .ab{padding:12px 6px;border-radius:10px;border:0;color:#fff;font-weight:700;line-height:1.2;display:flex;flex-direction:column;align-items:center}
+  .ab small{font-weight:500;opacity:.9;font-size:12px}
+  .ab.fold{background:var(--fold)}.ab.pass{background:var(--pass)}.ab.aggr{background:var(--aggr)}.ab.allin{background:var(--allin)}
+  .turnbox{border:2px solid var(--line);border-radius:12px;padding:10px;margin-bottom:12px;background:var(--panel)}
+  .turnbox.me{border-color:var(--acc)}
+  .turnbox h3{margin:0;font-size:16px}
+  .log{font-size:13px;color:var(--mut);margin-top:8px;line-height:1.7}
+  .log b{color:var(--txt)}
+
+  /* picker */
+  #pickerBg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:20}
+  #picker{background:#1c1c1e;width:100%;max-width:760px;margin:0 auto;border-radius:16px 16px 0 0;padding:12px 10px calc(14px + env(safe-area-inset-bottom))}
+  .ph{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .pgrid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px}
+  .pk{aspect-ratio:.72;border-radius:5px;border:0;color:#fff;font-weight:800;font-size:clamp(11px,3.6vw,18px);padding:0}
+  .pk.s{background:var(--s)}.pk.h{background:var(--h)}.pk.d{background:var(--d)}.pk.c{background:var(--c)}
+  .pk:disabled{opacity:.15}
+
+  /* ผลลัพธ์ */
+  .bar{display:flex;height:34px;border-radius:8px;overflow:hidden;margin:6px 0 4px}
+  .bar div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden}
+  .act{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .act i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px}
+  .sec2{font-weight:700;margin:14px 0 2px;font-size:14px}
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 6px}
+  .tile{border-radius:10px;padding:10px 12px;min-height:96px;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
+  .tile .tn{font-size:16px;font-weight:700;line-height:1.25;word-break:break-word}
+  .tile .tb{display:flex;justify-content:space-between;align-items:flex-end;gap:6px}
+  .tile .tp{font-size:28px;font-weight:800;line-height:1}
+  .tile .tc{font-size:11px;text-align:right;opacity:.9;line-height:1.25;white-space:nowrap}
+  .tl-allin{background:#6e2420}.tl-aggr{background:#dc4c46}.tl-pass{background:#56b86a}.tl-fold{background:#4b79b5}
+  .pbar{display:flex;height:6px;border-radius:4px;overflow:hidden;margin-bottom:6px}
+  .rec{font-size:22px;font-weight:800;margin:4px 0}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:8px 0}
+  .kv b{color:var(--mut);font-weight:500}
+  .why{white-space:pre-wrap;margin:8px 0}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;margin-left:6px}
+  .t-high{background:#1f4d2a}.t-medium{background:#5a4a00}.t-low{background:#5a1f1c}
+  .err{background:#3b1614;border:1px solid #7a2a26;color:#ffb4ae;padding:10px;border-radius:8px;margin-bottom:12px;white-space:pre-wrap}
+  .warn{font-size:12px;color:var(--mut);margin-top:8px}
+  .grid{display:grid;grid-template-columns:repeat(13,1fr);gap:1px;background:#000;border:1px solid #000;margin-top:8px}
+  .cell{aspect-ratio:1;font-size:clamp(7px,2.1vw,12px);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;text-shadow:0 1px 2px #000}
+  .cell.me{outline:2px solid var(--acc);outline-offset:-2px;z-index:1}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+  .spin{color:var(--mut);padding:8px 0}
+  #preview{max-width:100%;max-height:160px;border-radius:8px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+
+<h1>GTO Coach <span class="badge">APPROX · ไม่ใช่ solver จริง</span></h1>
+<div class="sub">กดเลือกไพ่และ action ตามลำดับที่นั่ง ไม่ต้องพิมพ์ ถึงตาคุณแล้วกดวิเคราะห์ Gemini จะประมาณ frequency ให้</div>
+
+<details id="settings">
+  <summary>⚙️ ตั้งค่า Gemini API key</summary>
+  <label>API key (เก็บในเครื่องคุณเท่านั้น)</label>
+  <input id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
+  <label>โมเดล</label>
+  <input id="model" value="gemini-2.5-flash">
+  <div class="hint" style="margin-top:6px">ขอ key ได้ที่ aistudio.google.com/apikey · key ถูกส่งตรงไป Google เท่านั้น</div>
+  <div class="btns"><button id="saveSet">บันทึก</button></div>
+</details>
+
+<div class="card">
+  <div class="sec">1) ตั้งค่าโต๊ะ</div>
+  <div class="row">
+    <div><label>จำนวนผู้เล่น</label><select id="selN"><option>6</option><option>7</option><option selected>8</option><option>9</option></select></div>
+    <div><label>Stack ทุกคน (BB)</label><select id="selStack"></select></div>
+    <div><label>BB ante</label><select id="selAnte"><option value="0">ไม่มี</option><option value="1">1 BB</option></select></div>
+  </div>
+  <label>รูปแบบ</label>
+  <div class="chips" id="fmtChips"></div>
+  <label>ฉันนั่งที่</label>
+  <div class="chips" id="heroChips"></div>
+  <label>ไพ่ของฉัน (แตะเพื่อเลือก)</label>
+  <div class="cards" id="heroCards"></div>
+  <label>อ่านฝั่งตรงข้าม (ถ้ามี)</label>
+  <div class="chips" id="readChips"></div>
+  <details style="margin:12px 0 0;padding:8px 10px">
+    <summary style="font-size:13px">📷 ทางลัด: ให้ Gemini อ่านไพ่จากรูป</summary>
+    <input id="img" type="file" accept="image/*" style="margin-top:8px">
+    <img id="preview" alt="">
+    <div class="btns"><button id="readImg">อ่านไพ่และตำแหน่งจากรูป</button></div>
+    <div id="readNote" class="hint"></div>
+  </details>
+  <div class="btns"><button id="newHand">🔄 เริ่มมือใหม่</button></div>
+</div>
+
+<div class="card" id="tableCard"></div>
+<div id="turnBox"></div>
+<div id="analyzeBox"></div>
+<div id="out"></div>
+
+<div id="pickerBg"><div id="picker">
+  <div class="ph"><div class="cards" id="pSlots"></div>
+    <div style="display:flex;gap:6px"><button id="pClear">🗑</button><button id="pClose">✕</button></div></div>
+  <div class="hint" id="pTitle" style="margin-bottom:8px"></div>
+  <div class="pgrid" id="pGrid"></div>
+</div></div>
+
+<script>
+/*ENGINE_START*/
+const RANKS = "AKQJT98765432".split("");
+const LAYOUT = {
+  9:["UTG","UTG1","UTG2","LJ","HJ","CO","BTN","SB","BB"],
+  8:["UTG","UTG1","LJ","HJ","CO","BTN","SB","BB"],
+  7:["UTG","LJ","HJ","CO","BTN","SB","BB"],
+  6:["UTG","HJ","CO","BTN","SB","BB"]
+};
+const STREETS = ["Preflop","Flop","Turn","River"];
+const r2 = x => Math.round(x*100)/100;
+const fmt = n => String(r2(+n));
+
+function post(g,i,amt){
+  amt = Math.min(r2(amt), g.stack[i]);
+  g.stack[i] = r2(g.stack[i]-amt); g.bet[i] = r2(g.bet[i]+amt); g.put[i] = r2(g.put[i]+amt); g.pot = r2(g.pot+amt);
+  if(g.stack[i] <= 0){ g.stack[i]=0; g.allin[i]=true; }
+  return amt;
+}
+function mkGame(N, stack, ante){
+  const names = LAYOUT[N].slice(), n = names.length;
+  const g = {names, n, start:stack, ante, street:0, board:[], pot:0, cur:0, minRaise:1, raises:0,
+    stack:names.map(()=>stack), bet:names.map(()=>0), put:names.map(()=>0),
+    alive:names.map(()=>true), allin:names.map(()=>false), need:[], to:0, log:[], over:null};
+  const sb = names.indexOf("SB"), bb = names.indexOf("BB");
+  if(ante>0){ const a = Math.min(ante,g.stack[bb]); g.stack[bb]=r2(g.stack[bb]-a); g.put[bb]=a; g.pot=r2(g.pot+a); }
+  post(g,sb,0.5); post(g,bb,1);
+  g.cur = 1; g.minRaise = 1;
+  g.need = names.map((_,i)=>i).filter(i=>!g.allin[i]);
+  g.to = 0;
+  return g;
+}
+const needCards = s => s===1?3:s===2?4:5;
+const boardReady = g => g.street===0 || g.board.filter(Boolean).length >= needCards(g.street);
+function actOrder(g){
+  const idx = g.names.map((_,i)=>i);
+  if(g.street===0) return idx;
+  const sb = g.names.indexOf("SB");
+  return idx.slice(sb).concat(idx.slice(0,sb));
+}
+const toCallOf = (g,i) => r2(Math.max(0, g.cur - g.bet[i]));
+const maxTotal = (g,i) => r2(g.bet[i] + g.stack[i]);
+const minRaiseTo = (g,i) => Math.min(maxTotal(g,i), r2(g.cur + g.minRaise));
+
+function sizeOptions(g,i){
+  const mx = maxTotal(g,i), mn = minRaiseTo(g,i), out = [];
+  const add = (label,t) => {
+    t = Math.max(r2(t), mn);
+    if(t >= mx || out.some(o=>o.total===t)) return;
+    out.push({label,total:t});
+  };
+  if(g.street===0){
+    if(g.cur<=1) [2,2.2,2.5,3].forEach(x=>add(x+"BB",x));
+    else [2.5,3,4].forEach(m=>add(m+"x",g.cur*m));
+  } else if(g.cur===0){
+    [33,50,75,100].forEach(p=>add(p+"%",g.pot*p/100));
+  } else {
+    [2.5,3,4].forEach(m=>add(m+"x",g.cur*m));
+  }
+  return out;
+}
+/* ปุ่มที่ทำได้ตอนนี้ */
+function legalActions(g,i){
+  const tc = toCallOf(g,i), mx = maxTotal(g,i), out = [];
+  if(tc>0){
+    out.push({k:"fold",cls:"fold",top:"Fold",sub:""});
+    out.push({k:"call",cls:"pass",top:"Call",sub:fmt(Math.min(tc,g.stack[i])),text:"Call "+fmt(Math.min(tc,g.stack[i]))});
+  } else out.push({k:"check",cls:"pass",top:"Check",sub:"",text:"Check"});
+  if(g.stack[i] > tc){
+    const bet = (g.street>0 && g.cur===0);
+    sizeOptions(g,i).forEach(o=>out.push({k:"raise",total:o.total,cls:"aggr",top:bet?"Bet":"Raise",sub:fmt(o.total)+" · "+o.label,text:(bet?"Bet ":"Raise to ")+fmt(o.total)+" ("+o.label+")"}));
+    out.push({k:"allin",total:mx,cls:"allin",top:"All-in",sub:fmt(mx),text:"All-in "+fmt(mx)});
+  }
+  return out;
+}
+
+function logText(g,i,kind,total,amt,allin){
+  const pos = g.names[i];
+  if(kind==="fold") return pos+" fold";
+  if(kind==="check") return pos+" check";
+  if(kind==="call") return pos+" call "+fmt(amt)+(allin?" (all-in)":"");
+  const pre = g.street===0;
+  const verb = pre ? (["open","3bet","4bet","5bet+"][Math.min(g.raises,3)]) : (g.cur===0?"bet":"raise");
+  return pos+" "+verb+" to "+fmt(total)+(allin?" (all-in)":"");
+}
+
+function applyAction(g, kind, total){
+  const i = g.to;
+  if(kind==="allin"){ total = maxTotal(g,i); kind = total>g.cur ? "raise" : "call"; }
+  let text;
+  if(kind==="fold"){
+    text = logText(g,i,"fold"); g.alive[i]=false; g.need = g.need.filter(p=>p!==i);
+  } else if(kind==="check"){
+    text = logText(g,i,"check"); g.need = g.need.filter(p=>p!==i);
+  } else if(kind==="call"){
+    const amt = post(g,i,toCallOf(g,i));
+    text = logText(g,i,"call",0,amt,g.allin[i]); g.need = g.need.filter(p=>p!==i);
+  } else {
+    total = Math.min(r2(total), maxTotal(g,i));
+    const inc = r2(total - g.cur);
+    const prevRaises = g.raises;
+    text = null;
+    const pre = {street:g.street, raises:g.raises, cur:g.cur};
+    if(inc >= g.minRaise) g.minRaise = inc;
+    const was = g.cur;
+    if(total > g.cur) g.cur = total;
+    post(g,i,r2(total-g.bet[i]));
+    // ใช้ค่า cur ก่อน raise ในการตั้งชื่อ
+    const tmp = {names:g.names, street:pre.street, raises:pre.raises, cur:was};
+    text = logText(tmp,i,"raise",total,0,g.allin[i]);
+    if(g.street===0) g.raises = prevRaises+1;
+    // เพื่อความง่าย ทุก raise เปิด action ใหม่ (ไม่แยก short all-in)
+    g.need = g.names.map((_,p)=>p).filter(p=>g.alive[p] && !g.allin[p] && p!==i);
+  }
+  g.log.push({street:g.street,text});
+  advance(g,i);
+  return text;
+}
+function advance(g,last){
+  const alive = g.names.map((_,i)=>i).filter(i=>g.alive[i]);
+  if(alive.length===1){ g.over={type:"fold",winner:alive[0]}; g.to=-1; return; }
+  const order = actOrder(g), start = order.indexOf(last);
+  for(let k=1;k<=order.length;k++){
+    const p = order[(start+k)%order.length];
+    if(g.alive[p] && !g.allin[p] && g.need.includes(p)){ g.to=p; return; }
+  }
+  endRound(g);
+}
+function endRound(g){
+  g.bet = g.bet.map(()=>0); g.cur = 0; g.minRaise = 1; g.raises = 0;
+  const alive = g.names.map((_,i)=>i).filter(i=>g.alive[i]);
+  const can = alive.filter(i=>!g.allin[i]);
+  if(g.street===3){ g.over={type:"showdown"}; g.to=-1; return; }
+  if(can.length<=1){ g.over={type:"runout"}; g.to=-1; return; }
+  g.street++; g.need = can.slice();
+  g.to = actOrder(g).find(i=>can.includes(i));
+}
+/*ENGINE_END*/
+
+/* =============== UI =============== */
+const $ = id => document.getElementById(id);
+const SUITS = {s:"♠",h:"♥",d:"♦",c:"♣"};
+const store = {
+  get(k,d){ try{ return localStorage.getItem(k) ?? d }catch(e){ return d } },
+  set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
+};
+const FORMATS = ["MTT chipEV","MTT ICM/ใกล้ bubble","PKO","Mystery Bounty","Cash"];
+const READS = ["ไม่ทราบ","Nit","TAG","LAG","Loose-passive","Calling station","Maniac"];
+
+let cfgN = 8, cfgStack = 100, cfgAnte = 0;
+let heroPos = "BB", heroCards = [], fmtSel = FORMATS[0], readSel = READS[0];
+let G = null, undoStack = [], promptedStreet = 0;
+
+[10,15,20,25,30,40,50,60,80,100,120,150,200].forEach(v=>$("selStack").add(new Option(v,v)));
+$("selStack").value = "100";
+$("apiKey").value = store.get("gto_key","");
+$("model").value = store.get("gto_model","gemini-2.5-flash");
+if(!$("apiKey").value) $("settings").open = true;
+$("saveSet").onclick = () => { store.set("gto_key",$("apiKey").value.trim()); store.set("gto_model",$("model").value.trim()); $("settings").open=false; };
+
+function chips(el, list, cur, onPick){
+  el.innerHTML = list.map(x=>`<button class="chip${x===cur?" on":""}" data-v="${x}">${x}</button>`).join("");
+  el.onclick = e => { const b = e.target.closest("button"); if(b) onPick(b.dataset.v); };
+}
+const esc = s => String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const cardHtml = (c, attrs="") => c
+  ? `<button class="pc ${c[1]}" ${attrs}>${c[0]}<small>${SUITS[c[1]]}</small></button>`
+  : `<button class="pc empty" ${attrs}>+</button>`;
+
+function newHand(){
+  G = mkGame(cfgN, cfgStack, cfgAnte);
+  undoStack = []; promptedStreet = 0;
+  if(!G.names.includes(heroPos)) heroPos = "BB";
+  $("out").innerHTML = "";
+  renderAll();
+}
+$("selN").onchange = e => { cfgN = +e.target.value; newHand(); };
+$("selStack").onchange = e => { cfgStack = +e.target.value; newHand(); };
+$("selAnte").onchange = e => { cfgAnte = +e.target.value; newHand(); };
+$("newHand").onclick = () => { heroCards = []; newHand(); };
+
+function renderSetup(){
+  chips($("fmtChips"), FORMATS, fmtSel, v=>{ fmtSel=v; renderSetup(); });
+  chips($("heroChips"), G.names, heroPos, v=>{ heroPos=v; renderAll(); });
+  chips($("readChips"), READS, readSel, v=>{ readSel=v; renderSetup(); });
+  $("heroCards").innerHTML = [0,1].map(i=>cardHtml(heroCards[i],`data-hero="1"`)).join("");
+}
+$("heroCards").onclick = e => { if(e.target.closest("button")) openPicker("hero"); };
+
+function renderTable(){
+  const g = G;
+  const boardSlots = [0,1,2,3,4].map(i=>{
+    const enabled = (i<3 && g.street>=1) || (i===3 && g.street>=2) || (i===4 && g.street>=3);
+    const k = i<3?"flop":i===3?"turn":"river";
+    return cardHtml(g.board[i], enabled?`data-board="${k}"`:`disabled style="opacity:.25"`);
+  }).join("");
+  const seats = g.names.map((p,i)=>{
+    const cls = ["seat", i===g.to?"to":"", p===heroPos?"hero":"", !g.alive[i]?"fold":""].join(" ");
+    const st = !g.alive[i] ? "Fold" : g.allin[i] ? "ALL-IN" : fmt(g.stack[i]);
+    const bt = g.alive[i] && g.bet[i]>0 ? `<div class="bt">bet ${fmt(g.bet[i])}</div>` : `<div>&nbsp;</div>`;
+    return `<div class="${cls}"><b>${p}</b><div>${st}</div>${bt}</div>`;
+  }).join("");
+  $("tableCard").innerHTML = `
+    <div class="potline"><div><span class="hint">Street</span> <b>${STREETS[g.street]}</b></div>
+    <div class="pot">Pot ${fmt(g.pot)} BB</div></div>
+    <div class="cards" id="boardCards">${boardSlots}</div>
+    <div class="seats">${seats}</div>`;
+}
+$("tableCard").onclick = e => {
+  const b = e.target.closest("button[data-board]"); if(b) openPicker(b.dataset.board);
+};
+
+let ACTS = [];
+function renderTurn(){
+  const g = G, box = $("turnBox");
+  if(g.over){
+    const m = g.over.type==="fold" ? `จบมือ: ${g.names[g.over.winner]} ชนะ เพราะที่เหลือโยนไพ่`
+            : g.over.type==="showdown" ? "จบมือ: ถึง showdown"
+            : "จบการเดิมพัน: ที่เหลือ all-in ไพ่ที่เหลือแจกจนจบ";
+    box.innerHTML = `<div class="turnbox"><h3>${m}</h3><div class="btns"><button class="primary" id="again">เริ่มมือใหม่ (เก็บไพ่เดิม)</button>${undoStack.length?`<button id="undoBtn">↩️ ย้อน</button>`:""}</div>${logHtml()}</div>`;
+    $("again").onclick = newHand;
+    if($("undoBtn")) $("undoBtn").onclick = doUndo;
+    return;
+  }
+  if(!boardReady(g)){
+    const k = g.street===1?"flop":g.street===2?"turn":"river";
+    box.innerHTML = `<div class="turnbox"><h3>เลือกไพ่ ${STREETS[g.street]}</h3><div class="btns"><button class="primary" id="pickBoard">🃏 เลือกไพ่บอร์ด</button>${undoStack.length?`<button id="undoBtn">↩️ ย้อน</button>`:""}</div>${logHtml()}</div>`;
+    $("pickBoard").onclick = () => openPicker(k);
+    if($("undoBtn")) $("undoBtn").onclick = doUndo;
+    return;
+  }
+  const i = g.to, me = g.names[i]===heroPos;
+  ACTS = legalActions(g,i);
+  const tc = toCallOf(g,i);
+  const btns = ACTS.map((a,k)=>`<button class="ab ${a.cls}" data-k="${k}">${a.top}${a.sub?`<small>${a.sub}</small>`:""}</button>`).join("");
+  const ahead = g.names.map((p,j)=>({p,j})).filter(o=>o.j!==i && g.alive[o.j] && !g.allin[o.j]);
+  box.innerHTML = `<div class="turnbox${me?" me":""}">
+    <h3>${me?"⭐ ถึงตาคุณ: ":"ถึงตา: "}${g.names[i]} <span class="hint">${tc>0?"ต้อง call "+fmt(Math.min(tc,g.stack[i]))+" BB":"ยังไม่มี bet"}</span></h3>
+    <div class="acts">${btns}</div>
+    <div class="row" style="margin-top:10px;grid-template-columns:1fr auto">
+      <select id="skipSel"><option value="">⏩ Fold รวดไปถึง…</option>${ahead.map(o=>`<option value="${o.j}">${o.p}</option>`).join("")}</select>
+      <button id="undoBtn" ${undoStack.length?"":"disabled"}>↩️ ย้อน</button>
+    </div>
+    <details style="margin:8px 0 0;padding:6px 10px"><summary class="hint">ไซส์อื่น (กรอกเอง)</summary>
+      <div class="row" style="grid-template-columns:1fr auto;margin-top:6px"><input id="customSz" type="number" step="any" inputmode="decimal" placeholder="รวมเป็น BB"><button id="customGo">ยืนยัน</button></div>
+    </details>
+    ${logHtml()}</div>`;
+  box.onclick = e => {
+    const b = e.target.closest("button.ab"); if(!b) return;
+    const a = ACTS[+b.dataset.k]; doAction(a.k, a.total);
+  };
+  $("undoBtn").onclick = doUndo;
+  $("skipSel").onchange = e => { if(e.target.value!=="") foldTo(+e.target.value); };
+  $("customGo").onclick = () => {
+    const v = +$("customSz").value; if(!(v>0)) return;
+    const mn = minRaiseTo(G,G.to), mx = maxTotal(G,G.to);
+    const t = Math.min(Math.max(v,mn),mx);
+    doAction(t>=mx?"allin":"raise", t);
+  };
+}
+function logHtml(){
+  const rows = STREETS.map((s,si)=>{
+    const es = G.log.filter(e=>e.street===si).map(e=>e.text); if(!es.length) return "";
+    const bd = si>0 ? " "+G.board.slice(si===1?0:si===2?3:4, si===1?3:si===2?4:5).filter(Boolean).map(c=>c[0]+SUITS[c[1]]).join("") : "";
+    return `<div><b>${s}${bd}</b>: ${es.join(" → ")}</div>`;
+  }).join("");
+  return rows?`<div class="log">${rows}</div>`:"";
+}
+function snap(){ undoStack.push(JSON.stringify(G)); }
+function doAction(k,total){
+  snap(); applyAction(G,k,total); afterChange();
+}
+function foldTo(target){
+  snap();
+  let guard=0;
+  while(G.to!==target && G.to!==-1 && guard++<20 && boardReady(G)){
+    const tc = toCallOf(G,G.to);
+    applyAction(G, tc>0?"fold":"check");
+  }
+  afterChange();
+}
+function doUndo(){
+  if(!undoStack.length) return;
+  G = JSON.parse(undoStack.pop());
+  promptedStreet = Math.max(promptedStreet, 0);
+  renderAll();
+}
+function afterChange(){
+  renderAll();
+  if(!G.over && !boardReady(G) && promptedStreet<G.street){
+    promptedStreet = G.street;
+    openPicker(G.street===1?"flop":G.street===2?"turn":"river");
+  }
+}
+
+function renderAnalyzeBtn(){
+  const g = G, box = $("analyzeBox");
+  const myTurn = !g.over && boardReady(g) && g.names[g.to]===heroPos;
+  const need = heroCards.length!==2 ? "เลือกไพ่ของคุณก่อน" : (!myTurn ? "ยังไม่ถึงตาคุณ" : "");
+  box.innerHTML = `<div class="btns" style="margin:0 0 12px"><button class="primary" id="go" ${need?"disabled":""}>🧠 วิเคราะห์ spot นี้</button><button id="gridBtn" ${need?"disabled":""}>🟥🟩🟦 Range grid</button></div>${need?`<div class="hint" style="margin:-6px 0 12px">${need}</div>`:""}`;
+  $("go").onclick = runAnalysis; $("gridBtn").onclick = runGrid;
+}
+function renderAll(){ renderSetup(); renderTable(); renderTurn(); renderAnalyzeBtn(); }
+
+/* =============== Card picker =============== */
+let P = null;
+const PK = {hero:{n:2,t:"ไพ่ของคุณ"},flop:{n:3,t:"Flop (3 ใบ)"},turn:{n:1,t:"Turn"},river:{n:1,t:"River"}};
+function targetCards(kind){
+  if(kind==="hero") return heroCards;
+  const b = G.board;
+  return kind==="flop"?b.slice(0,3):kind==="turn"?b.slice(3,4):b.slice(4,5);
+}
+function openPicker(kind){
+  const cfg = PK[kind], cur = targetCards(kind);
+  P = {kind, n:cfg.n, orig:cur.filter(Boolean), cards:Array.from({length:cfg.n},(_,i)=>cur[i]||null)};
+  $("pTitle").textContent = "เลือก: "+cfg.t+" (แตะไพ่ในช่องเพื่อลบ)";
+  renderPicker(); $("pickerBg").style.display = "flex";
+}
+function closePicker(){ $("pickerBg").style.display="none"; P=null; }
+function usedCards(){
+  const s = new Set([...heroCards, ...G.board].filter(Boolean));
+  P.orig.forEach(c=>s.delete(c)); P.cards.filter(Boolean).forEach(c=>s.add(c));
+  return s;
+}
+function renderPicker(){
+  $("pSlots").innerHTML = P.cards.map((c,i)=>cardHtml(c,`data-slot="${i}"`)).join("");
+  const used = usedCards();
+  $("pGrid").innerHTML = ["s","h","d","c"].map(su=>RANKS.map(r=>{
+    const c = r+su; return `<button class="pk ${su}" data-c="${c}" ${used.has(c)?"disabled":""}>${r}</button>`;
+  }).join("")).join("");
+}
+$("pSlots").onclick = e => { const b=e.target.closest("button[data-slot]"); if(b&&P){ P.cards[+b.dataset.slot]=null; renderPicker(); } };
+$("pGrid").onclick = e => {
+  const b = e.target.closest("button[data-c]"); if(!b||!P) return;
+  const i = P.cards.indexOf(null); if(i<0) return;
+  P.cards[i] = b.dataset.c; renderPicker();
+  if(P.cards.every(Boolean)) setTimeout(commitPicker,120);
+};
+$("pClear").onclick = () => { if(P){ P.cards = P.cards.map(()=>null); renderPicker(); } };
+$("pClose").onclick = () => { if(P && P.cards.every(Boolean)) commitPicker(); else closePicker(); };
+$("pickerBg").onclick = e => { if(e.target.id==="pickerBg") closePicker(); };
+function commitPicker(){
+  if(!P) return;
+  const {kind,cards} = P;
+  if(kind==="hero") heroCards = cards.slice();
+  else {
+    const base = kind==="flop"?0:kind==="turn"?3:4;
+    cards.forEach((c,i)=>{ G.board[base+i]=c; });
+  }
+  closePicker(); renderAll();
+}
+
+/* =============== Gemini =============== */
+const SYSTEM = `คุณคือโค้ชโป๊กเกอร์ MTT/PKO/Mystery Bounty ระดับ high-stakes ใช้ GTO เป็นฐาน และเบี่ยงเป็น exploit เมื่อมีข้อมูล villain รองรับเท่านั้น
+กฎ:
+- ตอบเป็นภาษาไทย ใช้ศัพท์โป๊กเกอร์อังกฤษได้
+- คุณไม่ใช่ solver ตัวเลข frequency/equity เป็นค่าประมาณ (~) ต้องระบุ range ที่ใช้เทียบเสมอ ถ้า EV ใกล้กันให้บอกว่า indifferent และลดความมั่นใจ
+- ตรวจบอร์ดก่อนเสมอ: flush (suit>=3), straight (ลิสต์ 5 ใบที่ครบจริง), paired board, nuts จริง ห้ามเรียกมือว่า nut ถ้ายังเช็กไม่ครบ
+- ระบุมือที่ชนะเรา และมือที่แพ้เราที่ยัง call ได้
+- ถ้าต้อง call: required equity = call ÷ (pot + call) เทียบ equity ประมาณของเรา บอก SPR และ bet เป็น % pot
+- ห้ามแนะนำ shove/call-off อัตโนมัติ ต้องเช็ก equity, fold equity, ICM และให้ทางเลือกที่สอง
+- ห้ามตอบ "ขึ้นกับสถานการณ์" ให้ตัดสิน spot นี้เลย
+- multiway: ลด bluff, เพิ่มความแข็งของ range
+- stack <=25BB preflop พิจารณา shove/3bet-shove เป็นทางเลือกที่สอง, stack <=15BB ใช้ push/fold
+- ห้ามแต่งข้อมูลที่ไม่ได้ให้ ถ้าขาดและสำคัญให้ระบุใน missing_info
+- ถ้า 1 มือ/ตัวอย่างน้อย อย่าเบี่ยงแรงจาก GTO เพราะ read`;
+
+async function gemini({parts, schema, system=SYSTEM, temperature=0.3}){
+  const key = $("apiKey").value.trim() || store.get("gto_key","");
+  if(!key){ $("settings").open = true; window.scrollTo(0,0); throw new Error("ยังไม่ได้ใส่ Gemini API key"); }
+  const model = ($("model").value.trim() || "gemini-2.5-flash");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const body = {
+    systemInstruction:{parts:[{text:system}]},
+    contents:[{role:"user",parts}],
+    generationConfig:{responseMimeType:"application/json",responseSchema:schema,temperature}
+  };
+  const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify(body)});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error((j.error && j.error.message) || ("HTTP "+r.status));
+  const txt = j.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+  if(!txt) throw new Error("Gemini ไม่ตอบกลับ (อาจโดน safety filter) ลองใหม่อีกครั้ง");
+  try { return JSON.parse(txt); } catch(e){ throw new Error("อ่านผลลัพธ์ไม่ได้ ลองกดใหม่"); }
+}
+const T = {STRING:"STRING",NUMBER:"NUMBER",ARRAY:"ARRAY",OBJECT:"OBJECT",INTEGER:"INTEGER"};
+const analysisSchema = {
+  type:T.OBJECT,
+  properties:{
+    read:{type:T.STRING,description:"สรุปที่อ่านได้: ไพ่เรา, บอร์ด, ตำแหน่ง, stack, pot, ต้อง call"},
+    board_check:{type:T.STRING,description:"ตรวจ flush/straight/paired/nuts และ made hand/draw ของเรา"},
+    range_assumption:{type:T.STRING,description:"range ของ villain ที่ใช้เทียบ"},
+    actions:{type:T.ARRAY,items:{type:T.OBJECT,properties:{
+      name:{type:T.STRING,description:"ใช้ชื่อจากตัวเลือกที่ให้"},
+      freq:{type:T.NUMBER,description:"0-100 ผลรวมต้องเป็น 100"},
+      kind:{type:T.STRING,description:"aggr | passive | fold"}
+    },required:["name","freq","kind"]}},
+    range_actions:{type:T.ARRAY,description:"กลยุทธ์ของทั้ง range ที่เรามี ณ จุดตัดสินใจนี้",items:{type:T.OBJECT,properties:{
+      name:{type:T.STRING,description:"ใช้ชื่อ action เดียวกับ actions"},
+      freq:{type:T.NUMBER,description:"% ของ range ผลรวม 100"},
+      kind:{type:T.STRING,description:"aggr | passive | fold"},
+      combos:{type:T.NUMBER,description:"จำนวน combos โดยประมาณ"}
+    },required:["name","freq","kind","combos"]}},
+    recommended:{type:T.STRING},
+    sizing:{type:T.STRING,description:"ไซส์ที่แนะนำ เป็น BB และ % pot"},
+    required_equity:{type:T.STRING},
+    equity_estimate:{type:T.STRING,description:"ประมาณ + ระบุ range ที่เทียบ"},
+    spr:{type:T.STRING},
+    reasoning:{type:T.STRING,description:"เหตุผล 3-6 บรรทัด"},
+    gto_baseline:{type:T.STRING},
+    exploit:{type:T.STRING,description:"ถ้าไม่มีข้อมูลรองรับ ให้ตอบว่า ไม่เบี่ยง"},
+    alternative:{type:T.STRING,description:"ทางเลือกที่สอง + เงื่อนไขเปลี่ยนใจ"},
+    confidence:{type:T.STRING,description:"high | medium | low"},
+    missing_info:{type:T.STRING}
+  },
+  required:["read","board_check","range_assumption","actions","recommended","sizing","reasoning","gto_baseline","exploit","alternative","confidence"]
+};
+const gridSchema = {
+  type:T.OBJECT,
+  properties:{
+    note:{type:T.STRING},
+    hands:{type:T.ARRAY,items:{type:T.OBJECT,properties:{
+      h:{type:T.STRING,description:"เช่น AA, AKs, AKo"},
+      a:{type:T.INTEGER,description:"% aggressive (bet/raise)"},
+      p:{type:T.INTEGER,description:"% passive (check/call)"},
+      f:{type:T.INTEGER,description:"% fold"}
+    },required:["h","a","p","f"]}}
+  },
+  required:["hands"]
+};
+const cardsSchema = {
+  type:T.OBJECT,
+  properties:{hero:{type:T.STRING,description:"เช่น AsKd หรือว่าง"},heroPos:{type:T.STRING},uncertain:{type:T.STRING}},
+  required:["hero","uncertain"]
+};
+
+function boardStr(g){ return g.board.filter(Boolean).map(c=>c[0]+SUITS[c[1]]).join(" ")||"-"; }
+function ctxText(){
+  const g = G, hi = g.names.indexOf(heroPos);
+  const tc = toCallOf(g,hi), call = Math.min(tc,g.stack[hi]);
+  const req = call>0 ? (call/(g.pot+call)*100).toFixed(1)+"%" : "-";
+  const others = g.names.map((p,j)=>j).filter(j=>j!==hi && g.alive[j]);
+  const effBehind = Math.min(g.stack[hi], Math.max(0,...others.map(j=>g.stack[j])));
+  const spr = g.pot>0 ? (effBehind/g.pot).toFixed(1) : "-";
+  const aliveTxt = g.names.map((p,j)=>g.alive[j]?`${p}${j===hi?"(เรา)":""} เหลือ ${fmt(g.stack[j])}BB${g.bet[j]>0?` bet street นี้ ${fmt(g.bet[j])}`:""}${g.allin[j]?" ALL-IN":""}`:null).filter(Boolean).join("; ");
+  const hist = STREETS.map((s,si)=>{
+    if(si>g.street) return null;
+    const es = g.log.filter(e=>e.street===si).map(e=>e.text);
+    const bd = si>0 ? " ["+g.board.slice(si===1?0:si===2?3:4, si===1?3:si===2?4:5).filter(Boolean).map(c=>c[0]+SUITS[c[1]]).join(" ")+"]" : "";
+    return `${s}${bd}: ${es.join(", ")||"(ยังไม่มี action)"}`;
+  }).filter(Boolean).join("\n");
+  const legal = legalActions(g,hi).map(a=>a.text||a.top).join(" | ");
+  return `Street: ${STREETS[g.street]} | ผู้เล่น ${g.n} คน | stack เริ่มต้น ${g.start}BB | BB ante: ${g.ante?g.ante+"BB":"ไม่มี"}
+ไพ่เรา: ${heroCards.map(c=>c[0]+SUITS[c[1]]).join(" ")}
+บอร์ด: ${boardStr(g)}
+ตำแหน่งเรา: ${heroPos}
+ผู้เล่นที่ยังอยู่: ${aliveTxt}
+Pot ตอนนี้: ${fmt(g.pot)}BB (รวม bet ที่อยู่หน้าโต๊ะแล้ว) | ต้อง call: ${fmt(call)}BB | required equity (คำนวณแล้ว): ${req} | SPR โดยประมาณ: ${spr} | effective behind: ${fmt(effBehind)}BB
+Action ที่เกิดขึ้นแล้ว (blinds: SB 0.5, BB 1):
+${hist}
+รูปแบบ: ${fmtSel}
+Villain read: ${readSel}
+ตัวเลือกที่ทำได้ตอนนี้ (ให้กระจาย frequency ในชื่อเหล่านี้): ${legal}`;
+}
+
+const COL = {aggr:"var(--aggr)",passive:"var(--pass)",fold:"var(--fold)"};
+function showErr(e){ $("out").insertAdjacentHTML("afterbegin",`<div class="err">⚠️ ${esc(e.message||e)}</div>`); }
+function loading(t){ $("out").innerHTML = `<div class="spin">⏳ ${t}</div>`; }
+function handClass(cards){
+  if(cards.length!==2) return null;
+  const [a,b] = cards, ia = RANKS.indexOf(a[0]), ib = RANKS.indexOf(b[0]);
+  if(a[0]===b[0]) return a[0]+a[0];
+  const hi = ia<ib?a:b, lo = ia<ib?b:a;
+  return hi[0]+lo[0]+(a[1]===b[1]?"s":"o");
+}
+function renderAnalysis(r){
+  const tiles = (list, withCombos) => {
+    const a = (list||[]).map(x=>({...x, v: (withCombos && x.combos!=null) ? +x.combos : +x.freq})).filter(x=>x.v>0);
+    const sum = a.reduce((s,x)=>s+x.v,0)||1;
+    const isAll = x => /all-?in/i.test(x.name||"");
+    const rank = x => isAll(x)?0 : x.kind==="aggr"?1 : x.kind==="passive"?2 : 3;
+    const cls = x => isAll(x)?"tl-allin" : x.kind==="aggr"?"tl-aggr" : x.kind==="passive"?"tl-pass" : "tl-fold";
+    a.sort((p,q)=>rank(p)-rank(q));
+    const html = a.map(x=>`<div class="tile ${cls(x)}"><div class="tn">${esc(x.name)}</div><div class="tb"><span class="tp">${(x.v/sum*100).toFixed(1)}%</span>${withCombos&&x.combos!=null?`<span class="tc">${(+x.combos).toFixed(1)}<br>combos</span>`:""}</div></div>`).join("");
+    const bar = a.map(x=>`<div class="${cls(x)}" style="width:${x.v/sum*100}%"></div>`).join("");
+    return `<div class="tiles">${html}</div><div class="pbar">${bar}</div>`;
+  };
+  const handTiles = tiles(r.actions,false);
+  const rangeTiles = (r.range_actions && r.range_actions.length) ? tiles(r.range_actions,true) : "";
+  const handLabel = heroCards.map(c=>c[0]+SUITS[c[1]]).join(" ");
+  const c = (r.confidence||"medium").toLowerCase();
+  $("out").innerHTML = `<div class="card" id="analysisCard">
+    <span class="badge">APPROX</span><span class="tag t-${c}">ความมั่นใจ: ${esc(c)}</span>
+    <div class="rec">${esc(r.recommended)}</div><div>${esc(r.sizing)}</div>
+    <div class="sec2">มือของคุณ ${handLabel} <span class="hint">(ค่าประมาณ)</span></div>${handTiles}
+    ${rangeTiles?`<div class="sec2">ทั้ง range ของคุณใน spot นี้ <span class="hint">(ค่าประมาณ)</span></div>${rangeTiles}`:""}
+    <div class="kv">
+      <b>READ</b><span>${esc(r.read)}</span>
+      <b>เช็กบอร์ด</b><span>${esc(r.board_check)}</span>
+      <b>Range villain</b><span>${esc(r.range_assumption)}</span>
+      ${r.required_equity?`<b>Required eq.</b><span>${esc(r.required_equity)}</span>`:""}
+      ${r.equity_estimate?`<b>Equity ประมาณ</b><span>${esc(r.equity_estimate)}</span>`:""}
+      ${r.spr?`<b>SPR</b><span>${esc(r.spr)}</span>`:""}
+    </div>
+    <div class="why">${esc(r.reasoning)}</div>
+    <div class="kv">
+      <b>GTO baseline</b><span>${esc(r.gto_baseline)}</span>
+      <b>Exploit</b><span>${esc(r.exploit)}</span>
+      <b>ทางเลือกที่สอง</b><span>${esc(r.alternative)}</span>
+      ${r.missing_info?`<b>ข้อมูลที่ขาด</b><span>${esc(r.missing_info)}</span>`:""}
+    </div>
+    <div class="warn">ตัวเลขทั้งหมดเป็นค่าประมาณจาก LLM ไม่ได้มาจาก solver จริง</div>
+  </div><div id="gridHost"></div>`;
+}
+function renderGrid(g){
+  const map = {}; (g.hands||[]).forEach(x=>map[x.h]=x);
+  const me = handClass(heroCards);
+  let cells = "";
+  for(let i=0;i<13;i++) for(let j=0;j<13;j++){
+    const name = i===j ? RANKS[i]+RANKS[i] : i<j ? RANKS[i]+RANKS[j]+"s" : RANKS[j]+RANKS[i]+"o";
+    const x = map[name] || {a:0,p:0,f:100};
+    const t = (x.a||0)+(x.p||0)+(x.f||0) || 100;
+    const a = (x.a||0)/t*100, p = (x.p||0)/t*100;
+    cells += `<div class="cell${name===me?" me":""}" style="background:linear-gradient(90deg,var(--aggr) 0 ${a}%,var(--pass) ${a}% ${a+p}%,var(--fold) ${a+p}% 100%)" title="${name}">${name}</div>`;
+  }
+  const meInfo = me && map[me] ? `<div class="warn">มือเรา <b>${me}</b>: aggr ~${map[me].a}% · passive ~${map[me].p}% · fold ~${map[me].f}%</div>` : "";
+  const box = document.createElement("div"); box.className = "card";
+  box.innerHTML = `<b>Range grid</b> <span class="badge">APPROX</span><div class="grid">${cells}</div>
+    <div class="legend"><span><i style="background:var(--aggr)"></i>Bet / Raise</span><span><i style="background:var(--pass)"></i>Check / Call</span><span><i style="background:var(--fold)"></i>Fold</span></div>
+    ${meInfo}<div class="warn">${esc(g.note||"ประมาณการจาก LLM ไม่ใช่ผล solver")}</div>`;
+  ($("gridHost")||$("out")).replaceChildren(box);
+}
+
+async function runAnalysis(){
+  const btn = $("go"); btn.disabled = true;
+  try{
+    loading("กำลังวิเคราะห์...");
+    const ask = `วิเคราะห์ spot นี้และตัดสินใจเลย
+- actions = กลยุทธ์สำหรับมือของเราโดยเฉพาะ (freq รวม 100)
+- range_actions = กลยุทธ์ของทั้ง range ที่เรามี ณ จุดตัดสินใจนี้ ใช้ชื่อ action เดียวกับ actions ระบุ combos โดยประมาณต่อ action (range ทั้งหมดไม่เกิน 1326 combos และต้องตัดมือที่ชนกับไพ่บนบอร์ดและไพ่ที่เห็นออก) ให้ freq สอดคล้องกับ combos
+- ทุกตัวเลขเป็นค่าประมาณ ไม่ใช่ผล solver
+`;
+    const r = await gemini({parts:[{text:ask+ctxText()}],schema:analysisSchema});
+    renderAnalysis(r);
+  }catch(e){ $("out").innerHTML=""; showErr(e); }
+  renderAnalyzeBtn();
+}
+async function runGrid(){
+  const btn = $("gridBtn"); btn.disabled = true;
+  try{
+    if(!$("analysisCard")) $("out").innerHTML = `<div id="gridHost"></div>`;
+    $("gridHost").innerHTML = `<div class="spin">⏳ กำลังสร้าง range grid (ประมาณ 169 มือ)...</div>`;
+    const prompt = `สร้างกลยุทธ์โดยประมาณของ "ผู้เล่นที่ต้องตัดสินใจใน spot นี้ (เรา)" สำหรับทุกมือใน range ของเขา (ใช้ range ที่สมเหตุสมผลตามตำแหน่งและ action ก่อนหน้า) เป็น 169 hand class (AA..22, suited=s, offsuit=o)
+แต่ละมือให้ a = % bet/raise, p = % check/call, f = % fold รวมกัน 100
+มือที่ไม่อยู่ใน range ให้ f=100 ใส่ note สั้นๆ ว่านี่คือค่าประมาณ
+${ctxText()}`;
+    const g = await gemini({parts:[{text:prompt}],schema:gridSchema,temperature:0.2});
+    renderGrid(g);
+  }catch(e){ if($("gridHost")) $("gridHost").innerHTML=""; showErr(e); }
+  renderAnalyzeBtn();
+}
+
+/* อ่านไพ่จากรูป (ทางลัด) */
+let imgData = null;
+$("img").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, 1600/Math.max(img.width,img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width*sc); cv.height = Math.round(img.height*sc);
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      const url = cv.toDataURL("image/jpeg",0.85);
+      imgData = url.split(",")[1];
+      $("preview").src = url; $("preview").style.display = "block";
+    };
+    img.src = fr.result;
+  };
+  fr.readAsDataURL(f);
+};
+$("readImg").onclick = async () => {
+  const btn = $("readImg"); btn.disabled = true; $("readNote").textContent = "";
+  try{
+    if(!imgData) throw new Error("เลือกรูปก่อน");
+    $("readNote").textContent = "⏳ กำลังอ่านรูป...";
+    const prompt = `อ่านรูปโต๊ะโป๊กเกอร์: ไพ่ของเราเป็นอะไร และเรานั่งตำแหน่งไหน (หาปุ่ม D แล้วนับตามเข็ม)
+ตำแหน่งใช้ชื่อ: UTG, UTG1, UTG2, LJ, HJ, CO, BTN, SB, BB
+ไพ่เขียนแบบ rank+suit เช่น AsKd (s=♠ h=♥ d=♦ c=♣) ถ้าไม่แน่ใจให้เว้นว่างและบอกใน uncertain`;
+    const r = await gemini({parts:[{text:prompt},{inlineData:{mimeType:"image/jpeg",data:imgData}}],schema:cardsSchema,temperature:0.1});
+    const m = [...(r.hero||"").matchAll(/([2-9TJQKA])([shdc])/gi)].map(x=>x[1].toUpperCase()+x[2].toLowerCase());
+    if(m.length===2 && m[0]!==m[1]) heroCards = m;
+    if(G.names.includes(r.heroPos)) heroPos = r.heroPos;
+    renderAll();
+    $("readNote").textContent = "ที่ผมอ่านได้: อัปเดตไพ่/ตำแหน่งแล้ว กรุณาตรวจ" + (r.uncertain?" · ไม่ชัด: "+r.uncertain:"");
+  }catch(e){ $("readNote").textContent=""; showErr(e); }
+  btn.disabled = false;
+};
+
+newHand();
+</script>
+</body>
+</html>
